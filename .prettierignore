@@ -1,0 +1,7 @@
+node_modules
+.uv-cache
+apps/local-api/.venv
+apps/desktop/dist
+apps/desktop/src-tauri/target
+package-lock.json
+uv.lock

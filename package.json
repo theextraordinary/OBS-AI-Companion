@@ -1,0 +1,27 @@
+{
+  "name": "vasp-companion",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/desktop",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "dev": "npm --workspace apps/desktop run dev",
+    "dev-api": "cd apps/local-api && uv run python -m vasp_companion",
+    "dev-desktop": "npm --workspace apps/desktop run tauri dev",
+    "build": "npm --workspace apps/desktop run build",
+    "lint": "npm --workspace apps/desktop run lint",
+    "typecheck": "npm --workspace apps/desktop run typecheck",
+    "test": "npm --workspace apps/desktop run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "contracts": "npm run contracts:generate",
+    "contracts:generate": "node scripts/generate-contracts.mjs",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
+  }
+}
