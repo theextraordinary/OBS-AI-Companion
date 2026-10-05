@@ -27,16 +27,16 @@ VASP Companion is a **local-first AI producer and co-host for OBS Studio**.
 
 ## 2. What it does today (MVP, as described in README)
 
-| Area | MVP capability |
-| --- | --- |
-| Local API | FastAPI on `127.0.0.1`, bearer-token auth, credential redaction |
-| OBS | WebSocket 5.x client: scenes, recording, replay buffer, mute |
-| Demo mode | Fake OBS with Starting Soon / Gameplay / Just Chatting / BRB scenes |
-| Commands | Deterministic text parser: scene switch, mute, record, replay, highlight |
-| Persistence | SQLite sessions and highlights, JSON manifest export |
-| Events | Typed event bus, live event WebSocket, bounded UI feed, diagnostics |
-| UI | React + Vite + Tailwind, Tauri 2 shell scaffold |
-| Inference | "Rules" inference router (no LLM yet) |
+| Area        | MVP capability                                                           |
+| ----------- | ------------------------------------------------------------------------ |
+| Local API   | FastAPI on `127.0.0.1`, bearer-token auth, credential redaction          |
+| OBS         | WebSocket 5.x client: scenes, recording, replay buffer, mute             |
+| Demo mode   | Fake OBS with Starting Soon / Gameplay / Just Chatting / BRB scenes      |
+| Commands    | Deterministic text parser: scene switch, mute, record, replay, highlight |
+| Persistence | SQLite sessions and highlights, JSON manifest export                     |
+| Events      | Typed event bus, live event WebSocket, bounded UI feed, diagnostics      |
+| UI          | React + Vite + Tailwind, Tauri 2 shell scaffold                          |
+| Inference   | "Rules" inference router (no LLM yet)                                    |
 
 Explicitly **not** in the MVP: continuous understanding of gameplay, voice conversation, LLMs, auto-generated Shorts, uploads, or cloud accounts.
 
@@ -45,6 +45,7 @@ Explicitly **not** in the MVP: continuous understanding of gameplay, voice conve
 ## 3. What it should support (target feature set)
 
 ### 3.1 Voice co-host (headline feature)
+
 - Hands-free conversation while recording/streaming: wake word or push-to-talk.
 - Low-latency spoken replies (target: first audio < 1.5 s after the streamer stops talking on a mid-range PC).
 - Barge-in: streamer can interrupt the AI mid-sentence.
@@ -54,23 +55,27 @@ Explicitly **not** in the MVP: continuous understanding of gameplay, voice conve
 - Dead-air detection: optional prompts or banter when the streamer has been quiet for N seconds.
 
 ### 3.2 Spoken and natural-language control
+
 - Everything the deterministic parser does, but from free-form speech ("can you cut to the break screen and mute me").
 - LLM turns speech into **structured tool calls**; the existing command policy validates them; risky actions (stop recording, end stream) require confirmation.
 - "Clip that" / "mark that" with automatic replay-buffer save and timestamp.
 
 ### 3.3 Stream awareness
+
 - OBS events (scene changes, recording state, dropped frames, bitrate) fed into the AI context.
 - Chat integration: Twitch (IRC/EventSub), YouTube Live Chat, Kick (where APIs allow). Summarise chat, answer questions, read selected messages aloud, flag spam/toxicity.
 - Alerts: follows/subs/raids/donations as events the co-host can react to.
 - Optional vision: low-rate screenshots from an OBS source (the scaffold already has `FRAME_CAPTURE_INTERVAL_SECONDS`) so the co-host can comment on what is on screen.
 
 ### 3.4 Production automation
+
 - Highlight detection from multiple signals: voice excitement, chat velocity, keywords, manual marks, game events.
 - Post-session report: timeline, highlights, chat summary, suggested titles/descriptions/tags, chapter markers.
 - Clip export: cut highlights from the recording with FFmpeg, vertical crop presets for Shorts/Reels/TikTok, auto-captions via STT.
 - Upload only on explicit user action (YouTube / TikTok integrations are late-phase and opt-in).
 
 ### 3.5 Platform and extensibility
+
 - Windows first (most OBS streamers), then macOS (Apple Silicon is great for local models) and Linux.
 - Plugin SDK for new tools, chat platforms, and model providers.
 - Overlay browser source (captions, AI "is speaking" indicator, persona avatar) served from the local API.
@@ -87,30 +92,30 @@ No cost, no key, works offline, nothing leaves the machine.
 
 **Runtime.** We do not ship our own inference engine. We integrate with existing free runtimes through their **OpenAI-compatible HTTP API**, so one client covers all of them:
 
-| Runtime | Why | Notes |
-| --- | --- | --- |
-| **Ollama** (MIT) | Easiest install, model pull/management, Windows/macOS/Linux | Recommended default; wizard can install it and pull models |
-| **llama.cpp server** (MIT) | Smallest footprint, fine-grained GPU layer control | Can be bundled as a sidecar for a zero-dependency install |
-| LM Studio | Friendly GUI many users already have | Free to use but not open source; supported as "bring your own" |
+| Runtime                    | Why                                                         | Notes                                                          |
+| -------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------- |
+| **Ollama** (MIT)           | Easiest install, model pull/management, Windows/macOS/Linux | Recommended default; wizard can install it and pull models     |
+| **llama.cpp server** (MIT) | Smallest footprint, fine-grained GPU layer control          | Can be bundled as a sidecar for a zero-dependency install      |
+| LM Studio                  | Friendly GUI many users already have                        | Free to use but not open source; supported as "bring your own" |
 
 **Speech pipeline (all free/open):**
 
-| Stage | Default choice | Alternatives |
-| --- | --- | --- |
-| Voice activity detection | Silero VAD | WebRTC VAD |
-| Wake word (optional) | openWakeWord | Push-to-talk hotkey (default) |
-| Speech-to-text | faster-whisper (`small`/`base`, int8) | whisper.cpp, Moonshine, distil-whisper |
-| LLM | see model table below | — |
-| Text-to-speech | Piper (fast, CPU) | Kokoro-82M (higher quality), OS voices |
+| Stage                    | Default choice                        | Alternatives                           |
+| ------------------------ | ------------------------------------- | -------------------------------------- |
+| Voice activity detection | Silero VAD                            | WebRTC VAD                             |
+| Wake word (optional)     | openWakeWord                          | Push-to-talk hotkey (default)          |
+| Speech-to-text           | faster-whisper (`small`/`base`, int8) | whisper.cpp, Moonshine, distil-whisper |
+| LLM                      | see model table below                 | —                                      |
+| Text-to-speech           | Piper (fast, CPU)                     | Kokoro-82M (higher quality), OS voices |
 
 **Model selection by hardware.** The model shortlist below reflects open-weight families with permissive or usable licenses at time of writing; the wizard reads from a **remote-updatable model catalog** (a JSON file in this repo) so we can swap in newer models without an app release. Verify licenses and sizes when implementing.
 
-| Hardware profile | Conversation model | Vision (optional) | Expected experience |
-| --- | --- | --- | --- |
-| CPU only / low-end (≤8 GB RAM free) | 1–3B instruct, Q4 (e.g. Qwen3 1.7B, Llama 3.2 3B, Gemma 3 1B) | off | Usable short replies, ~2–4 s latency |
-| 6–8 GB VRAM GPU (shared with game) | 3–4B instruct, Q4 (e.g. Qwen3 4B, Gemma 3 4B, Phi-4-mini) | Gemma 3 4B / Moondream at low rate | Good banter, ~1–2 s |
-| 12–16 GB VRAM or Apple Silicon 16 GB+ | 7–14B instruct, Q4 (e.g. Qwen3 8B/14B, Gemma 3 12B) | Qwen2.5-VL 7B / Gemma 3 12B | Strong co-host, reliable tool calling |
-| 24 GB+ VRAM or a second PC | 14–32B or MoE (e.g. Qwen3 30B-A3B, Mistral Small) | larger VLM | Near-cloud quality |
+| Hardware profile                      | Conversation model                                            | Vision (optional)                  | Expected experience                   |
+| ------------------------------------- | ------------------------------------------------------------- | ---------------------------------- | ------------------------------------- |
+| CPU only / low-end (≤8 GB RAM free)   | 1–3B instruct, Q4 (e.g. Qwen3 1.7B, Llama 3.2 3B, Gemma 3 1B) | off                                | Usable short replies, ~2–4 s latency  |
+| 6–8 GB VRAM GPU (shared with game)    | 3–4B instruct, Q4 (e.g. Qwen3 4B, Gemma 3 4B, Phi-4-mini)     | Gemma 3 4B / Moondream at low rate | Good banter, ~1–2 s                   |
+| 12–16 GB VRAM or Apple Silicon 16 GB+ | 7–14B instruct, Q4 (e.g. Qwen3 8B/14B, Gemma 3 12B)           | Qwen2.5-VL 7B / Gemma 3 12B        | Strong co-host, reliable tool calling |
+| 24 GB+ VRAM or a second PC            | 14–32B or MoE (e.g. Qwen3 30B-A3B, Mistral Small)             | larger VLM                         | Near-cloud quality                    |
 
 **The GPU contention problem.** The streamer's GPU is already busy rendering the game and (often) encoding with NVENC/AMF. Running an LLM on the same GPU can cause frame drops. Mitigations, in order:
 
@@ -127,6 +132,7 @@ For users with weak hardware who still want a smart co-host. The user creates th
 Candidates (all subject to change, verify terms and limits at implementation time): Google AI Studio (Gemini free tier), Groq free tier, OpenRouter's free-model routes, Cloudflare Workers AI free allocation, Hugging Face Inference.
 
 Rules for this tier:
+
 - **Off by default.** Enabling it shows a clear notice that audio transcripts and prompts leave the machine, and that some free tiers may use data for training.
 - Keys stored in the OS keychain (Windows Credential Manager / macOS Keychain / libsecret), never in SQLite or logs.
 - Rate-limit aware: the router tracks quota and falls back to local automatically.
@@ -170,13 +176,13 @@ flowchart LR
 
 ### 4.6 Latency budget (target, mid-range GPU, local)
 
-| Stage | Budget |
-| --- | --- |
-| End-of-speech detection (VAD) | 200–300 ms |
-| STT final | 200–400 ms |
-| LLM first sentence | 300–600 ms |
-| TTS first audio chunk | 100–200 ms |
-| **Total to first audio** | **≈ 0.8–1.5 s** |
+| Stage                         | Budget          |
+| ----------------------------- | --------------- |
+| End-of-speech detection (VAD) | 200–300 ms      |
+| STT final                     | 200–400 ms      |
+| LLM first sentence            | 300–600 ms      |
+| TTS first audio chunk         | 100–200 ms      |
+| **Total to first audio**      | **≈ 0.8–1.5 s** |
 
 ---
 
@@ -186,9 +192,9 @@ This is the part most likely to go wrong, so it gets its own design:
 
 - **Input**: the companion captures the mic itself (via the OS audio API), independently of OBS, so it can hear the streamer even when the OBS mic is muted. Optional: listen to desktop/game audio for context (off by default).
 - **Output modes**:
-  1. *Private co-host*: TTS plays on the streamer's headphones device only; not in the recording.
-  2. *On-air co-host*: TTS plays on a dedicated output that OBS captures as its own audio source ("VASP Co-host"), so it can be mixed, ducked, or muted per track. The setup wizard creates/selects this source through OBS WebSocket.
-  3. *Text only*: replies shown in the app and/or as an on-stream caption overlay.
+  1. _Private co-host_: TTS plays on the streamer's headphones device only; not in the recording.
+  2. _On-air co-host_: TTS plays on a dedicated output that OBS captures as its own audio source ("VASP Co-host"), so it can be mixed, ducked, or muted per track. The setup wizard creates/selects this source through OBS WebSocket.
+  3. _Text only_: replies shown in the app and/or as an on-stream caption overlay.
 - **Echo/feedback**: in on-air mode, don't let the AI hear itself: pause STT while speaking, or use the known TTS signal to cancel it from the mic input.
 - **Multi-track recording**: recommend putting the AI voice on a separate OBS audio track so it can be removed in editing.
 
@@ -199,12 +205,14 @@ This is the part most likely to go wrong, so it gets its own design:
 Each phase has an exit criterion; we don't start the next phase's headline feature until the previous one is met.
 
 ### Phase 0 — Land the MVP in the repo
+
 - Commit `apps/local-api`, `apps/desktop`, `packages/contracts`, `packages/plugin-sdk`, `docs/`, `scripts/`.
 - Restore `.env.example` (it was deleted) with documented settings.
 - CI: lint, typecheck, unit tests for API (FakeObsService) and desktop on Windows + Linux.
 - **Exit**: fresh clone → `make setup && make test` passes; demo mode flow works end to end.
 
 ### Phase 1 — Provider abstraction and local LLM (text chat)
+
 - `InferenceProvider` interface (chat, streaming, tool calls, structured output) with providers: `rules`, `openai_compatible` (covers Ollama, llama.cpp, LM Studio, LAN servers).
 - Hardware detection + setup wizard: detect GPU/VRAM/RAM, detect existing Ollama, recommend a model from the catalog, download with progress.
 - Text chat panel in the UI talking to the local model, with persona presets.
@@ -212,6 +220,7 @@ Each phase has an exit criterion; we don't start the next phase's headline featu
 - **Exit**: on an 8 GB VRAM machine, "switch to just chatting and mute me" typed in chat works via a local model, with no stream frame drops in a 1-hour demo.
 
 ### Phase 2 — Voice co-host (the headline)
+
 - Mic capture, Silero VAD, push-to-talk hotkey (global), optional openWakeWord.
 - faster-whisper streaming STT; Piper TTS; sentence-chunked streaming pipeline; barge-in.
 - Output modes (private / on-air / text) and OBS audio source setup.
@@ -220,6 +229,7 @@ Each phase has an exit criterion; we don't start the next phase's headline featu
 - **Exit**: < 1.5 s median time-to-first-audio on reference hardware; 2-hour recording with co-host active has no added dropped frames versus baseline.
 
 ### Phase 3 — Stream awareness
+
 - Twitch chat + EventSub alerts, YouTube Live Chat; read-only by default, optional bot replies.
 - Chat summarisation, question answering, read-aloud with filtering, basic toxicity/spam flags.
 - Session memory (rolling summary) and opt-in long-term memory stored locally in SQLite.
@@ -227,18 +237,21 @@ Each phase has an exit criterion; we don't start the next phase's headline featu
 - **Exit**: co-host can accurately answer "what has chat been saying the last 5 minutes?" and react to a raid in a live test.
 
 ### Phase 4 — Vision and highlights
+
 - Frame sampler from an OBS source (screenshot request, downscaled), vision model at low rate, paused by resource guard.
 - Highlight scoring from voice energy, chat velocity, keywords, manual marks, vision cues.
 - Post-session report: timeline, highlight list, chat summary, titles/descriptions/chapters.
 - **Exit**: on a recorded test session, ≥ 70% of manually marked highlights are also found automatically.
 
 ### Phase 5 — Clips and publishing
+
 - FFmpeg clip cutting from recordings/replays, vertical crop presets, burned-in captions from STT.
 - Optional BYO-key cloud tier (Tier 2/3) with keychain storage and privacy notices.
 - Opt-in YouTube/TikTok upload with draft/review step; never automatic.
 - **Exit**: one click from a highlight to a captioned vertical clip on disk.
 
 ### Phase 6 — Packaging, plugins, and polish
+
 - Signed Windows installer with bundled Python sidecar (and optional bundled llama.cpp), macOS notarised build, Linux AppImage.
 - Plugin SDK v1 (providers, tools, chat platforms) with out-of-process isolation.
 - Localisation of UI and persona prompts; multilingual STT/TTS voices.
@@ -249,14 +262,14 @@ Each phase has an exit criterion; we don't start the next phase's headline featu
 
 ## 7. Architecture changes needed
 
-| Component | Change |
-| --- | --- |
-| `apps/local-api` | New modules: `inference/` (providers, router, catalog), `voice/` (capture, VAD, STT, TTS, pipeline), `chat/` (platform adapters), `guard/` (resource monitor), `memory/` |
-| `packages/contracts` | Tool schemas, provider config, voice state events, model catalog types |
-| `apps/desktop` | Setup wizard, model manager, voice panel, persona editor, privacy settings, overlay page |
-| Event bus | New events: `voice.listening`, `voice.transcript`, `ai.reply.delta`, `ai.speaking`, `guard.downgrade`, `chat.message`, `alert.*` |
-| Storage | Keychain for secrets; models in a user data dir outside the repo (`*.safetensors`, etc. already gitignored) |
-| Security | Threat-model updates for mic capture, chat input as a prompt-injection source, LAN offload pairing, cloud egress |
+| Component            | Change                                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/local-api`     | New modules: `inference/` (providers, router, catalog), `voice/` (capture, VAD, STT, TTS, pipeline), `chat/` (platform adapters), `guard/` (resource monitor), `memory/` |
+| `packages/contracts` | Tool schemas, provider config, voice state events, model catalog types                                                                                                   |
+| `apps/desktop`       | Setup wizard, model manager, voice panel, persona editor, privacy settings, overlay page                                                                                 |
+| Event bus            | New events: `voice.listening`, `voice.transcript`, `ai.reply.delta`, `ai.speaking`, `guard.downgrade`, `chat.message`, `alert.*`                                         |
+| Storage              | Keychain for secrets; models in a user data dir outside the repo (`*.safetensors`, etc. already gitignored)                                                              |
+| Security             | Threat-model updates for mic capture, chat input as a prompt-injection source, LAN offload pairing, cloud egress                                                         |
 
 ---
 
