@@ -111,6 +111,8 @@ The app binds only to localhost, requires auth for API calls, does not expose ar
 
 The MVP does not continuously understand gameplay, automatically create Shorts, upload stream content, or require a cloud account. It uses deterministic command parsing by default and leaves clean extension points for local, cloud, and hybrid AI later.
 
+See [ROADMAP.md](ROADMAP.md) for the full plan, including the free local-LLM voice co-host.
+
 ## Known Limitations
 
 Production sidecar bundling is scaffolded but not frozen into a signed binary yet. In-process third-party plugins are not a true sandbox. Full Tauri E2E automation is documented as future work; browser-level smoke tests cover the MVP flow.
